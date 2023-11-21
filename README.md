@@ -1,0 +1,2 @@
+# blog
+Didik's log
