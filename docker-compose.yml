@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    image: didik-blog:latest
+    container_name: didik-blog
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    volumes:
+      # Optional: Mount contents if you want to update them without rebuilding
+      - ./contents:/app/contents
+      - ./static:/app/static
+      - ./data:/app/data

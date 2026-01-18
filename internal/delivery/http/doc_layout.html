@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>">
+    <script>
+        // Use inline check for instant dark mode to prevent FOUC
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+
+<body class="bg-slate-100 dark:bg-slate-900 transition-colors duration-1000">
+    <div class="flex min-h-screen relative">
+        <!-- Sidebar: Responsive (Drawer on Mobile, Floating on Desktop) -->
+        <aside id="logo-sidebar"
+            class="fixed top-0 left-0 z-40 w-80 h-screen transition-transform -translate-x-full bg-white border-r border-slate-200 shadow-sm md:translate-x-0 dark:bg-slate-800 dark:border-slate-700 md:m-4 md:h-[calc(100vh-2rem)] md:rounded-xl md:border"
+            aria-label="Sidebar">
+            <div class="h-full px-3 py-4 flex flex-col">
+                <div class="flex items-center justify-between mb-4 px-6 transition-all duration-300">
+                    <!-- Title: Hide when collapsed -->
+                    <a href="/" id="sidebar-title"
+                        class="text-xl font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap overflow-hidden transition-opacity duration-300 hover:text-blue-600 dark:hover:text-blue-400">
+                        📖 Didik's Blog</a>
+
+                    <div class="flex gap-4 items-center transition-all duration-300">
+                        <!-- Theme Toggle: Hide when collapsed -->
+                        <button id="theme-toggle" type="button"
+                            class="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-lg text-sm p-2.5 whitespace-nowrap transition-opacity duration-1000">
+                            <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor"
+                                viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8 0 1010.586 10.586z"></path>
+                            </svg>
+                            <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor"
+                                viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                                    fill-rule="evenodd" clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+
+                        <!-- Sidebar Toggle Button Removed (Moved to edge) -->
+                    </div>
+                </div>
+
+                <!-- Toggle Strip (Full Height on Right Edge) -->
+                <button id="sidebar-toggle-btn" type="button"
+                    class="absolute top-0 right-0 w-4 h-full cursor-pointer z-50 focus:outline-none flex items-center justify-center group"
+                    aria-label="Toggle Sidebar">
+                    <!-- Hover Highlight -->
+                    <div
+                        class="absolute inset-y-0 right-0 w-1 bg-slate-200 dark:bg-slate-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    </div>
+                    <!-- Arrow Bubble -->
+                    <div
+                        class="absolute right-[-20px] w-10 h-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-center shadow-sm text-slate-500 dark:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <svg id="toggle-arrow" class="w-6 h-6 transition-transform duration-300" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </div>
+                </button>
+
+
+                <!-- Search Trigger (Expanded) -->
+                <div id="sidebar-search-container" class="px-3 mb-4">
+                    <!-- Expanded: Fake Input Trigger -->
+                    <button id="search-trigger-expanded" type="button"
+                        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-500 bg-slate-50 border border-slate-300 rounded-lg hover:bg-slate-100 hover:border-slate-400 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700 transition-all group">
+                        <svg aria-hidden="true"
+                            class="w-5 h-5 text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <span class="flex-1 text-left">Search docs...</span>
+                        <span
+                            class="text-xs text-slate-400 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5">⌘K</span>
+                    </button>
+
+                    <!-- Collapsed: Button (Hidden by default) -->
+                    <button id="search-collapsed-btn" type="button"
+                        class="hidden w-10 h-10 mx-auto items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 transition-colors focus:outline-none">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </button>
+                </div>
+                <nav id="sidebar-nav" class="flex-1 overflow-y-auto whitespace-nowrap transition-opacity duration-300">
+                    {{range .Sections}}
+                    <div class="mb-4">
+                        {{if ne .Title "General"}}
+                        <button onclick="toggleSection(this)"
+                            class="flex items-center justify-between w-full px-3 mb-2 pb-1 border-b border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-500 uppercase tracking-wider hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors focus:outline-none group">
+                            {{.Title}}
+                            <svg class="w-4 h-4 transition-transform duration-300 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200"
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        {{end}}
+                        <div class="space-y-1 transition-all duration-300 overflow-hidden origin-top">
+                            {{range .Links}}
+                            <a href="{{.Path}}"
+                                class="block px-3 py-2 rounded-md transition-colors text-sm {{if eq .Path $.CurrentPath}}bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400 font-medium{{else}}text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700{{end}}">
+                                {{.Title}}
+                            </a>
+                            {{end}}
+                        </div>
+                    </div>
+                    {{end}}
+                </nav>
+            </div>
+        </aside>
+
+        <main id="main-content" class="flex-1 ml-0 md:ml-80 p-6 transition-all duration-300">
+            <div id="content-card"
+                class="w-full max-w-6xl mx-auto bg-stone-50 dark:bg-slate-800 p-8 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                <div class="mb-4 text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                    <span id="view-count"
+                        class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-blue-200 dark:text-blue-800">
+                        👀 {{.Views}} views
+                    </span>
+                </div>
+                <article class="prose prose-slate dark:prose-invert prose-blue max-w-none">
+                    {{.Content}}
+                </article>
+            </div>
+        </main>
+    </div>
+
+    <!-- Search Modal -->
+    <div id="search-modal" class="fixed inset-0 z-[60] hidden" aria-labelledby="modal-title" role="dialog"
+        aria-modal="true">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-md transition-opacity opacity-0"
+            id="search-modal-backdrop"></div>
+
+        <div class="fixed inset-0 z-10 overflow-y-auto p-4 sm:p-6 md:p-20" id="search-modal-wrapper">
+            <div class="mx-auto max-w-2xl transform divide-y divide-slate-100 overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-black ring-opacity-5 transition-all opacity-0 scale-95 dark:bg-slate-800 dark:divide-slate-700 dark:ring-slate-700"
+                id="search-modal-panel">
+
+                <div class="relative">
+                    <svg class="pointer-events-none absolute top-3.5 left-4 h-5 w-5 text-slate-400 dark:text-slate-500"
+                        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd"
+                            d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <input type="text" id="modal-search-input"
+                        class="h-12 w-full border-0 bg-transparent pl-11 pr-4 text-slate-900 placeholder:text-slate-400 focus:ring-0 sm:text-sm dark:text-white"
+                        placeholder="Search documentation..." role="combobox" aria-expanded="false"
+                        aria-controls="options">
+                </div>
+
+                <!-- Results List -->
+                <div id="modal-search-results"
+                    class="max-h-[60vh] scroll-py-2 overflow-y-auto py-2 text-sm text-slate-800 dark:text-slate-200">
+                    <!-- Default State / Empty -->
+                    <p class="p-4 text-center text-slate-500 dark:text-slate-400">Type to search...</p>
+                </div>
+
+                <!-- Footer -->
+                <div
+                    class="flex flex-wrap items-center bg-slate-50 px-4 py-2.5 text-xs text-slate-500 dark:bg-slate-700/50 dark:text-slate-400 gap-2">
+                    <span class="font-medium">Protip:</span>
+                    <span class="hidden sm:inline">Use arrows to navigate</span>
+                    <span class="mx-1">·</span>
+                    <kbd
+                        class="mx-1 flex h-5 w-5 items-center justify-center rounded border border-slate-200 bg-white font-semibold text-slate-900 sm:mx-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100">↵</kbd>
+                    <span class="hidden sm:inline">to select</span>
+                    <span class="mx-1">·</span>
+                    <kbd
+                        class="mx-1 flex h-5 w-5 items-center justify-center rounded border border-slate-200 bg-white font-semibold text-slate-900 sm:mx-2 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100">esc</kbd>
+                    <span class="hidden sm:inline">to close</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Logic -->
+    <script src="/static/script.js"></script>
+</body>
+
+</html>
