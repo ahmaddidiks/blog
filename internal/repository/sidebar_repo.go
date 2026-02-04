@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ahmaddidiks/blog/internal/entity"
@@ -35,11 +36,12 @@ type docItem struct {
 }
 
 type fileSystemDocRepo struct {
-	basePath string
-	md       goldmark.Markdown
-	// cache    map[string]template.HTML // Replaced by docs map
-	docs     map[string]docItem
-	sections []entity.SidebarSection
+	basePath     string
+	md           goldmark.Markdown
+	docs         map[string]docItem
+	sections     []entity.SidebarSection
+	lastScanTime time.Time
+	mu           sync.RWMutex
 }
 
 func NewFileSystemDocRepo(basePath string) DocRepository {
@@ -58,20 +60,33 @@ func NewFileSystemDocRepo(basePath string) DocRepository {
 		md:       md,
 		docs:     make(map[string]docItem),
 	}
-	repo.scan()
+
+	// Initial Scan
+	if err := repo.scan(); err != nil {
+		fmt.Printf("Initial scan failed: %v\n", err)
+	}
+
+	// Start background reloader
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			repo.reload()
+		}
+	}()
+
 	return repo
 }
 
 func (r *fileSystemDocRepo) GetStructure() ([]entity.SidebarSection, error) {
-	if r.sections == nil {
-		if err := r.scan(); err != nil {
-			return nil, err
-		}
-	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.sections, nil
 }
 
 func (r *fileSystemDocRepo) GetContent(path string) (template.HTML, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	doc, ok := r.docs[path]
 	if !ok {
 		return "", fmt.Errorf("doc not found: %s", path)
@@ -80,6 +95,9 @@ func (r *fileSystemDocRepo) GetContent(path string) (template.HTML, error) {
 }
 
 func (r *fileSystemDocRepo) Search(query string) ([]entity.SearchResult, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
 	query = strings.ToLower(query)
 	var results []entity.SearchResult
 
@@ -109,11 +127,6 @@ func (r *fileSystemDocRepo) Search(query string) ([]entity.SearchResult, error) 
 			}
 			snippet := doc.Content[start:end] + "..."
 
-			// Highlight query in snippet (simple replacement)
-			// Note: This is a bit naive for HTML safety, but for now we assume simple text.
-			// Ideally we use a safer way or do highlighting on frontend.
-			// Let's just return text for now.
-
 			results = append(results, entity.SearchResult{
 				Title:   doc.Title,
 				Path:    doc.Path,
@@ -128,10 +141,71 @@ func (r *fileSystemDocRepo) Search(query string) ([]entity.SearchResult, error) 
 	return results, nil
 }
 
+func (r *fileSystemDocRepo) reload() {
+	if !r.hasChanges() {
+		return
+	}
+
+	// Log that we are reloading
+	fmt.Println("Changes detected, reloading content...")
+
+	docs, sections, err := r.buildIndex()
+	if err != nil {
+		fmt.Printf("Error reloading content: %v. Keeping old content.\n", err)
+		return
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.docs = docs
+	r.sections = sections
+	r.lastScanTime = time.Now()
+	fmt.Println("Content reloaded successfully.")
+}
+
+func (r *fileSystemDocRepo) hasChanges() bool {
+	changed := false
+	err := filepath.WalkDir(r.basePath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && strings.HasSuffix(d.Name(), ".md") {
+			info, err := d.Info()
+			if err != nil {
+				return nil // Ignore error, check next
+			}
+			if info.ModTime().After(r.lastScanTime) {
+				changed = true
+				return filepath.SkipAll // Stop looking, we found a change
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		fmt.Printf("Error checking for changes: %v\n", err)
+	}
+	return changed
+}
+
+// scan is now a wrapper for buildIndex that updates the struct immediately (used for init)
 func (r *fileSystemDocRepo) scan() error {
+	docs, sections, err := r.buildIndex()
+	if err != nil {
+		return err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.docs = docs
+	r.sections = sections
+	r.lastScanTime = time.Now()
+	return nil
+}
+
+func (r *fileSystemDocRepo) buildIndex() (map[string]docItem, []entity.SidebarSection, error) {
 	rootLinks := []entity.SidebarLink{}
 	categoryLinks := make(map[string][]entity.SidebarLink)
 	categories := []string{}
+	newDocs := make(map[string]docItem)
 
 	processFile := func(path string, fileInfo os.DirEntry) (*entity.SidebarLink, error) {
 		if fileInfo.IsDir() || !strings.HasSuffix(fileInfo.Name(), ".md") {
@@ -186,13 +260,10 @@ func (r *fileSystemDocRepo) scan() error {
 			displayTitle = fmt.Sprintf("%s %s", date.Format("2006-01-02"), title)
 		}
 
-		// r.cache[urlPath] = template.HTML(buf.String())
-		// Store raw content for search (naive reuse of mdData bytes as string)
-		// Better: Strip HTML from rendered output to get clean text for search/snippets
 		htmlContent := buf.String()
 		plainText := stripTags(htmlContent)
 
-		r.docs[urlPath] = docItem{
+		newDocs[urlPath] = docItem{
 			Title:   displayTitle,
 			Content: plainText,
 			HTML:    template.HTML(htmlContent),
@@ -209,7 +280,7 @@ func (r *fileSystemDocRepo) scan() error {
 
 	entries, err := os.ReadDir(r.basePath)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	for _, entry := range entries {
@@ -279,8 +350,7 @@ func (r *fileSystemDocRepo) scan() error {
 		}
 	}
 
-	r.sections = sections
-	return nil
+	return newDocs, sections, nil
 }
 
 // stripTags removes HTML tags from the content to produce plain text
