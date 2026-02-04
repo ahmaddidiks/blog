@@ -30,7 +30,10 @@ COPY --from=builder /app/static ./static
 COPY --from=builder /app/contents ./contents
 
 # Expose port
-EXPOSE 8080
+EXPOSE 8090
+
+# Set default environment
+ENV PORT=8090
 
 # Run the binary
 CMD ["./server"]

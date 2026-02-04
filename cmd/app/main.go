@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	delivery "github.com/ahmaddidiks/blog/internal/delivery/http"
 	"github.com/ahmaddidiks/blog/internal/repository"
@@ -28,6 +29,12 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.Handle("/", docHandler)
 
-	log.Println("Docs server running at http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// 5. Get Port from Env
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("Docs server running at http://localhost:%s\n", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
